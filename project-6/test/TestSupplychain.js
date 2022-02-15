@@ -1,4 +1,3 @@
-// This script is designed to test the solidity smart contract - SuppyChain.sol -- and the various functions within
 // Declare a variable and assign the compiled smart contract artifact
 var SupplyChain = artifacts.require('SupplyChain')
 
@@ -14,11 +13,11 @@ contract('SupplyChain', function(accounts) {
     const originFarmLongitude = "144.341490"
     var productID = sku + upc
     const productNotes = "Best beans for Espresso"
-    const productPrice = web3.toWei(0, "ether")
+    const productPrice = web3.toWei("1", "ether")
     var itemState = 0
-    const distributorID = "0x0000000000000000000000000000000000000000" // accounts[2]
-    const retailerID = "0x0000000000000000000000000000000000000000" // accounts[3]
-    const consumerID = "0x0000000000000000000000000000000000000000" // accounts[4]
+    const distributorID = accounts[2]
+    const retailerID = accounts[3]
+    const consumerID = accounts[4]
     const emptyAddress = '0x00000000000000000000000000000000000000'
 
     ///Available Accounts
@@ -44,15 +43,16 @@ contract('SupplyChain', function(accounts) {
     // 1st Test
     it("Testing smart contract function harvestItem() that allows a farmer to harvest coffee", async() => {
         const supplyChain = await SupplyChain.deployed()
-        
+
         // Declare and Initialize a variable for event
         var eventEmitted = false
-        
+
         // Watch the emitted event Harvested()
         var event = supplyChain.Harvested()
         await event.watch((err, res) => {
             eventEmitted = true
         })
+
 
         // Mark an item as Harvested by calling function harvestItem()
         await supplyChain.harvestItem(upc, originFarmerID, originFarmName, originFarmInformation, originFarmLatitude, originFarmLongitude, productNotes)
@@ -62,8 +62,8 @@ contract('SupplyChain', function(accounts) {
         const resultBufferTwo = await supplyChain.fetchItemBufferTwo.call(upc)
 
         // Verify the result set
-        assert.equal(resultBufferOne[0], sku, 'Error: Invalid item SKU')
-        assert.equal(resultBufferOne[1], upc, 'Error: Invalid item UPC')
+        assert.equal(resultBufferOne[0].toNumber(), sku, 'Error: Invalid item SKU')
+        assert.equal(resultBufferOne[1].toNumber(), upc, 'Error: Invalid item UPC')
         assert.equal(resultBufferOne[2], originFarmerID, 'Error: Missing or Invalid ownerID')
         assert.equal(resultBufferOne[3], originFarmerID, 'Error: Missing or Invalid originFarmerID')
         assert.equal(resultBufferOne[4], originFarmName, 'Error: Missing or Invalid originFarmName')
@@ -71,49 +71,41 @@ contract('SupplyChain', function(accounts) {
         assert.equal(resultBufferOne[6], originFarmLatitude, 'Error: Missing or Invalid originFarmLatitude')
         assert.equal(resultBufferOne[7], originFarmLongitude, 'Error: Missing or Invalid originFarmLongitude')
         assert.equal(resultBufferTwo[5], 0, 'Error: Invalid item State')
-        assert.equal(eventEmitted, true, 'Invalid event emitted')        
-    })    
+        assert.equal(eventEmitted, true, 'Invalid event emitted')
+    }).timeout(10000)
 
     // 2nd Test
     it("Testing smart contract function processItem() that allows a farmer to process coffee", async() => {
         const supplyChain = await SupplyChain.deployed()
-        
+
         // Declare and Initialize a variable for event
         var eventEmitted = false
-        
+
         // Watch the emitted event Processed()
         var event = supplyChain.Processed()
         await event.watch((err, res) => {
             eventEmitted = true
         })
 
-        // Mark an item as Processed by calling function processtItem()
-        await supplyChain.processItem(upc)
+        // Mark an item as Processed by calling function processItem()
+        await supplyChain.addFarmer(originFarmerID)
+        await supplyChain.processItem(upc, {from: originFarmerID})
 
         // Retrieve the just now saved item from blockchain by calling function fetchItem()
-        const resultBufferOne = await supplyChain.fetchItemBufferOne.call(upc)
         const resultBufferTwo = await supplyChain.fetchItemBufferTwo.call(upc)
 
         // Verify the result set
-        assert.equal(resultBufferOne[0], sku, 'Error: Invalid item SKU')
-        assert.equal(resultBufferOne[1], upc, 'Error: Invalid item UPC')
-        assert.equal(resultBufferOne[2], originFarmerID, 'Error: Missing or Invalid ownerID')
-        assert.equal(resultBufferOne[3], originFarmerID, 'Error: Missing or Invalid originFarmerID')
-        assert.equal(resultBufferOne[4], originFarmName, 'Error: Missing or Invalid originFarmName')
-        assert.equal(resultBufferOne[5], originFarmInformation, 'Error: Missing or Invalid originFarmInformation')
-        assert.equal(resultBufferOne[6], originFarmLatitude, 'Error: Missing or Invalid originFarmLatitude')
-        assert.equal(resultBufferOne[7], originFarmLongitude, 'Error: Missing or Invalid originFarmLongitude')
         assert.equal(resultBufferTwo[5], 1, 'Error: Invalid item State')
         assert.equal(eventEmitted, true, 'Invalid event emitted')
-    })    
+    }).timeout(15000)
 
     // 3rd Test
     it("Testing smart contract function packItem() that allows a farmer to pack coffee", async() => {
         const supplyChain = await SupplyChain.deployed()
-        
+
         // Declare and Initialize a variable for event
         var eventEmitted = false
-        
+
         // Watch the emitted event Packed()
         var event = supplyChain.Packed()
         await event.watch((err, res) => {
@@ -121,33 +113,23 @@ contract('SupplyChain', function(accounts) {
         })
 
         // Mark an item as Packed by calling function packItem()
-        await supplyChain.packItem(upc)
+        await supplyChain.packItem(upc, {from: originFarmerID})
 
         // Retrieve the just now saved item from blockchain by calling function fetchItem()
-        const resultBufferOne = await supplyChain.fetchItemBufferOne.call(upc)
         const resultBufferTwo = await supplyChain.fetchItemBufferTwo.call(upc)
 
         // Verify the result set
-        assert.equal(resultBufferOne[0], sku, 'Error: Invalid item SKU')
-        assert.equal(resultBufferOne[1], upc, 'Error: Invalid item UPC')
-        assert.equal(resultBufferOne[2], originFarmerID, 'Error: Missing or Invalid ownerID')
-        assert.equal(resultBufferOne[3], originFarmerID, 'Error: Missing or Invalid originFarmerID')
-        assert.equal(resultBufferOne[4], originFarmName, 'Error: Missing or Invalid originFarmName')
-        assert.equal(resultBufferOne[5], originFarmInformation, 'Error: Missing or Invalid originFarmInformation')
-        assert.equal(resultBufferOne[6], originFarmLatitude, 'Error: Missing or Invalid originFarmLatitude')
-        assert.equal(resultBufferOne[7], originFarmLongitude, 'Error: Missing or Invalid originFarmLongitude')
         assert.equal(resultBufferTwo[5], 2, 'Error: Invalid item State')
         assert.equal(eventEmitted, true, 'Invalid event emitted')
-        
-    })    
+    }).timeout(10000)
 
     // 4th Test
     it("Testing smart contract function sellItem() that allows a farmer to sell coffee", async() => {
         const supplyChain = await SupplyChain.deployed()
-        
+
         // Declare and Initialize a variable for event
         var eventEmitted = false
-        
+
         // Watch the emitted event ForSale()
         var event = supplyChain.ForSale()
         await event.watch((err, res) => {
@@ -155,32 +137,24 @@ contract('SupplyChain', function(accounts) {
         })
 
         // Mark an item as ForSale by calling function sellItem()
-        await supplyChain.sellItem(upc, productPrice)
+        await supplyChain.sellItem(upc, productPrice, {from: originFarmerID})
 
         // Retrieve the just now saved item from blockchain by calling function fetchItem()
-        const resultBufferOne = await supplyChain.fetchItemBufferOne.call(upc)
         const resultBufferTwo = await supplyChain.fetchItemBufferTwo.call(upc)
 
         // Verify the result set
-        assert.equal(resultBufferOne[0], sku, 'Error: Invalid item SKU')
-        assert.equal(resultBufferOne[1], upc, 'Error: Invalid item UPC')
-        assert.equal(resultBufferOne[2], originFarmerID, 'Error: Missing or Invalid ownerID')
-        assert.equal(resultBufferOne[3], originFarmerID, 'Error: Missing or Invalid originFarmerID')
-        assert.equal(resultBufferOne[4], originFarmName, 'Error: Missing or Invalid originFarmName')
-        assert.equal(resultBufferOne[5], originFarmInformation, 'Error: Missing or Invalid originFarmInformation')
-        assert.equal(resultBufferOne[6], originFarmLatitude, 'Error: Missing or Invalid originFarmLatitude')
-        assert.equal(resultBufferOne[7], originFarmLongitude, 'Error: Missing or Invalid originFarmLongitude')
+        assert.equal(resultBufferTwo[4], productPrice, 'Error: Invalid product price')
         assert.equal(resultBufferTwo[5], 3, 'Error: Invalid item State')
         assert.equal(eventEmitted, true, 'Invalid event emitted')
-    })    
+    }).timeout(10000)
 
     // 5th Test
     it("Testing smart contract function buyItem() that allows a distributor to buy coffee", async() => {
         const supplyChain = await SupplyChain.deployed()
-        
+
         // Declare and Initialize a variable for event
         var eventEmitted = false
-        
+
         // Watch the emitted event Sold()
         var event = supplyChain.Sold()
         await event.watch((err, res) => {
@@ -188,57 +162,42 @@ contract('SupplyChain', function(accounts) {
         })
 
         // Mark an item as Sold by calling function buyItem()
-        await supplyChain.buyItem(upc)
+        await supplyChain.addDistributor(distributorID)
+        await supplyChain.buyItem(upc, {from: distributorID, value: web3.toWei("1", "ether")})
 
         // Retrieve the just now saved item from blockchain by calling function fetchItem()
         const resultBufferOne = await supplyChain.fetchItemBufferOne.call(upc)
         const resultBufferTwo = await supplyChain.fetchItemBufferTwo.call(upc)
 
         // Verify the result set
-        assert.equal(resultBufferOne[0], sku, 'Error: Invalid item SKU')
-        assert.equal(resultBufferOne[1], upc, 'Error: Invalid item UPC')
-        assert.equal(resultBufferOne[2], ownerID, 'Error: Missing or Invalid ownerID')
-        assert.equal(resultBufferOne[3], originFarmerID, 'Error: Missing or Invalid originFarmerID')
-        assert.equal(resultBufferOne[4], originFarmName, 'Error: Missing or Invalid originFarmName')
-        assert.equal(resultBufferOne[5], originFarmInformation, 'Error: Missing or Invalid originFarmInformation')
-        assert.equal(resultBufferOne[6], originFarmLatitude, 'Error: Missing or Invalid originFarmLatitude')
-        assert.equal(resultBufferOne[7], originFarmLongitude, 'Error: Missing or Invalid originFarmLongitude')
+        assert.equal(resultBufferOne[2], distributorID, 'Error: Missing or Invalid ownerID')
         assert.equal(resultBufferTwo[5], 4, 'Error: Invalid item State')
+        assert.equal(resultBufferTwo[6], distributorID, 'Error: Missing or Invalid distributorID')
         assert.equal(eventEmitted, true, 'Invalid event emitted')
-    })    
+    }).timeout(10000)
 
     // 6th Test
     it("Testing smart contract function shipItem() that allows a distributor to ship coffee", async() => {
         const supplyChain = await SupplyChain.deployed()
-        
+
         // Declare and Initialize a variable for event
         var eventEmitted = false
-        
+
         // Watch the emitted event Shipped()
         var event = supplyChain.Shipped()
         await event.watch((err, res) => {
             eventEmitted = true
         })
-
         // Mark an item as Sold by calling function shipItem()
-        await supplyChain.shipItem(upc)
+        await supplyChain.shipItem(upc, {from: distributorID})
 
         // Retrieve the just now saved item from blockchain by calling function fetchItem()
-        const resultBufferOne = await supplyChain.fetchItemBufferOne.call(upc)
         const resultBufferTwo = await supplyChain.fetchItemBufferTwo.call(upc)
 
         // Verify the result set
-        assert.equal(resultBufferOne[0], sku, 'Error: Invalid item SKU')
-        assert.equal(resultBufferOne[1], upc, 'Error: Invalid item UPC')
-        assert.equal(resultBufferOne[2], ownerID, 'Error: Missing or Invalid ownerID')
-        assert.equal(resultBufferOne[3], originFarmerID, 'Error: Missing or Invalid originFarmerID')
-        assert.equal(resultBufferOne[4], originFarmName, 'Error: Missing or Invalid originFarmName')
-        assert.equal(resultBufferOne[5], originFarmInformation, 'Error: Missing or Invalid originFarmInformation')
-        assert.equal(resultBufferOne[6], originFarmLatitude, 'Error: Missing or Invalid originFarmLatitude')
-        assert.equal(resultBufferOne[7], originFarmLongitude, 'Error: Missing or Invalid originFarmLongitude')
         assert.equal(resultBufferTwo[5], 5, 'Error: Invalid item State')
         assert.equal(eventEmitted, true, 'Invalid event emitted')
-    })    
+    }).timeout(10000)
 
     // 7th Test
     it("Testing smart contract function receiveItem() that allows a retailer to mark coffee received", async() => {
@@ -254,25 +213,19 @@ contract('SupplyChain', function(accounts) {
         })
 
         // Mark an item as Sold by calling function receiveItem()
-        await supplyChain.receiveItem(upc)
+        await supplyChain.addRetailer(retailerID)
+        await supplyChain.receiveItem(upc, {from: retailerID})
 
         // Retrieve the just now saved item from blockchain by calling function fetchItem()
         const resultBufferOne = await supplyChain.fetchItemBufferOne.call(upc)
         const resultBufferTwo = await supplyChain.fetchItemBufferTwo.call(upc)
 
         // Verify the result set
-        assert.equal(resultBufferOne[0], sku, 'Error: Invalid item SKU')
-        assert.equal(resultBufferOne[1], upc, 'Error: Invalid item UPC')
-        assert.equal(resultBufferOne[2], ownerID, 'Error: Missing or Invalid ownerID')
-        assert.equal(resultBufferOne[3], originFarmerID, 'Error: Missing or Invalid originFarmerID')
-        assert.equal(resultBufferOne[4], originFarmName, 'Error: Missing or Invalid originFarmName')
-        assert.equal(resultBufferOne[5], originFarmInformation, 'Error: Missing or Invalid originFarmInformation')
-        assert.equal(resultBufferOne[6], originFarmLatitude, 'Error: Missing or Invalid originFarmLatitude')
-        assert.equal(resultBufferOne[7], originFarmLongitude, 'Error: Missing or Invalid originFarmLongitude')
+        assert.equal(resultBufferOne[2], retailerID, 'Error: Missing or Invalid ownerID')
         assert.equal(resultBufferTwo[5], 6, 'Error: Invalid item State')
+        assert.equal(resultBufferTwo[7], retailerID, 'Error: Missing or Invalid distributorID')
         assert.equal(eventEmitted, true, 'Invalid event emitted')
-             
-    })    
+    }).timeout(10000)
 
     // 8th Test
     it("Testing smart contract function purchaseItem() that allows a consumer to purchase coffee", async() => {
@@ -287,73 +240,56 @@ contract('SupplyChain', function(accounts) {
             eventEmitted = true
         })
 
-        // Mark an item as Sold by calling function purchaseItem()
-        await supplyChain.purchaseItem(upc)
+        // Mark an item as Sold by calling function buyItem()
+        await supplyChain.addConsumer(consumerID)
+        await supplyChain.purchaseItem(upc, {from: consumerID})
 
         // Retrieve the just now saved item from blockchain by calling function fetchItem()
         const resultBufferOne = await supplyChain.fetchItemBufferOne.call(upc)
         const resultBufferTwo = await supplyChain.fetchItemBufferTwo.call(upc)
 
         // Verify the result set
-        assert.equal(resultBufferOne[0], sku, 'Error: Invalid item SKU')
-        assert.equal(resultBufferOne[1], upc, 'Error: Invalid item UPC')
-        assert.equal(resultBufferOne[2], ownerID, 'Error: Missing or Invalid ownerID')
-        assert.equal(resultBufferOne[3], originFarmerID, 'Error: Missing or Invalid originFarmerID')
-        assert.equal(resultBufferOne[4], originFarmName, 'Error: Missing or Invalid originFarmName')
-        assert.equal(resultBufferOne[5], originFarmInformation, 'Error: Missing or Invalid originFarmInformation')
-        assert.equal(resultBufferOne[6], originFarmLatitude, 'Error: Missing or Invalid originFarmLatitude')
-        assert.equal(resultBufferOne[7], originFarmLongitude, 'Error: Missing or Invalid originFarmLongitude')
+        assert.equal(resultBufferOne[2], consumerID, 'Error: Missing or Invalid ownerID')
         assert.equal(resultBufferTwo[5], 7, 'Error: Invalid item State')
+        assert.equal(resultBufferTwo[8], consumerID, 'Error: Missing or Invalid consumerID')
         assert.equal(eventEmitted, true, 'Invalid event emitted')
-        
-    })    
+    }).timeout(10000)
 
     // 9th Test
     it("Testing smart contract function fetchItemBufferOne() that allows anyone to fetch item details from blockchain", async() => {
         const supplyChain = await SupplyChain.deployed()
 
         // Retrieve the just now saved item from blockchain by calling function fetchItem()
-        const item = await supplyChain.fetchItemBufferOne(upc)
-        console.log("item-one: ", item)
-        
-        // Verify the result set:
-        assert.equal(item[0].c[0], sku, "sku is not equal")
-        assert.equal(item[1].c[0], sku, "upc is not equal")
-        //assert.equal(item[2], originFarmerID, "ownerID is not equal")
-        assert.equal(item[3], originFarmerID, "originFarmerID does not match")
-        assert.equal(item[4], originFarmName, "originFarmName does not match")
-        assert.equal(item[5], originFarmInformation, "originFarmInformation does not match")
-        assert.equal(item[6], originFarmLatitude, "originFarmLatitude does not match")
-        assert.equal(item[7], originFarmLongitude, "originFarmLongitude does not match")
-        return item
+        const resultBufferOne = await supplyChain.fetchItemBufferOne.call(upc)
 
-    })
+        // Verify the result set:
+        assert.equal(resultBufferOne[0].toNumber(), sku, 'Error: Invalid item SKU')
+        assert.equal(resultBufferOne[1].toNumber(), upc, 'Error: Invalid item UPC')
+        assert.equal(resultBufferOne[2], consumerID, 'Error: Missing or Invalid ownerID')
+        assert.equal(resultBufferOne[3], originFarmerID, 'Error: Missing or Invalid originFarmerID')
+        assert.equal(resultBufferOne[4], originFarmName, 'Error: Missing or Invalid originFarmName')
+        assert.equal(resultBufferOne[5], originFarmInformation, 'Error: Missing or Invalid originFarmInformation')
+        assert.equal(resultBufferOne[6], originFarmLatitude, 'Error: Missing or Invalid originFarmLatitude')
+        assert.equal(resultBufferOne[7], originFarmLongitude, 'Error: Missing or Invalid originFarmLongitude')
+    }).timeout(10000)
 
     // 10th Test
     it("Testing smart contract function fetchItemBufferTwo() that allows anyone to fetch item details from blockchain", async() => {
         const supplyChain = await SupplyChain.deployed()
 
         // Retrieve the just now saved item from blockchain by calling function fetchItem()
-        const item = await supplyChain.fetchItemBufferTwo(upc)
-        console.log("item-two: ", item)
-        console.log("productPrice: ", productPrice)
+        const resultBufferTwo = await supplyChain.fetchItemBufferTwo.call(upc)
 
         // Verify the result set:
-        assert.equal(item[0].s, sku, "sku is not equal")
-        assert.equal(item[1].s, sku, "upc is not equal")
-        assert.equal(item[2].c[0], productID, "productID is not equal")
-        assert.equal(item[3], productNotes, "productNotes does not match")
-        let newProductPrice = web3.toWei(Number(item[4].c[0]), "ether")
-        console.log("newProductPrice: ", newProductPrice)
-        assert.equal(newProductPrice, productPrice, "productPrice does not match")
-        //assert.equal(item[5].c[0], itemState, "itemState does not match")
-        //assert.equal(item[7], retailerID, "retailerID does not match")
-        //assert.equal(item[8], consumerID, "consumerID does not match")
-        return item
-        
-        // Verify the result set:
-        
-    })
+        assert.equal(resultBufferTwo[0].toNumber(), sku, 'Error: Invalid item SKU')
+        assert.equal(resultBufferTwo[1].toNumber(), upc, 'Error: Invalid item UPC')
+        assert.equal(resultBufferTwo[2].toNumber(), productID, 'Error: Invalid productID')
+        assert.equal(resultBufferTwo[3], productNotes, 'Error: Invalid productNote')
+        assert.equal(resultBufferTwo[4], productPrice, 'Error: Invalid product price')
+        assert.equal(resultBufferTwo[5], 7, 'Error: Invalid item State')
+        assert.equal(resultBufferTwo[6], distributorID, 'Error: Missing or Invalid distributorID')
+        assert.equal(resultBufferTwo[7], retailerID, 'Error: Missing or Invalid distributorID')
+        assert.equal(resultBufferTwo[8], consumerID, 'Error: Missing or Invalid consumerID')
+    }).timeout(10000)
 
 });
-
